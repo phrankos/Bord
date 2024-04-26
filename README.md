@@ -13,6 +13,7 @@
 2. DOER finds TASKs they want to do.
 3. DOER films themselves doing the TASK they chose.
 4. DOER uploads it to BORD.
-5. JUDGES will vote if the DOER successfully did what the TASK given by the ASKER.
+5. JUDGES will need to buy TOKENs in order to view a DOER’s video.
+6. JUDGES will vote using TOKENs if the DOER successfully did what the TASK given by the ASKER.
     1. After a certain allotted time, if the consensus of the JUDGES is that the DOER is successfully completed the TASK, the DOER will be awarded the prize money that the ASKER set.
     2. Else, a new voting with a different DOER will begin.
