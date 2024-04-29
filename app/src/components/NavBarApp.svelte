@@ -33,6 +33,7 @@
 
             <div class="flex space-x-4">
                 <nav class="hidden md:flex items-center gap-4 lg:gap-6">
+                    <a href="#test">TEST</a>
                     <a href="/roles" class="text-xl cursor-pointer">
                         <button 
                         on:mouseenter={roleHover}

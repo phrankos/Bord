@@ -3,8 +3,6 @@
   import { onMount } from 'svelte';
   
   let role;
-
-  // Retrieve the count from sessionStorage on component mount
   onMount(() => {
     role = sessionStorage.getItem('role');
   });
