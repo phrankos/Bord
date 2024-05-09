@@ -16,7 +16,7 @@
             <a href="/join" class="text-xl cursor-pointer">
                 <button 
                 class="text-xl font-medium rounded-md border border-indigo-500 py-2 px-4
-                transition duration-200 hover:text-white hover:bg-indigo-700"
+                transition duration-200 hover:text-white hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-300"
                     >Join</button
                 >
             </a>

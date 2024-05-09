@@ -1,14 +1,29 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "hardhat-abi-exporter"
 
 import "dotenv/config";
 
 const ARBITRUM_SEPOLIA_URL: string = process.env.ARBITRUM_SEPOLIA_URL ?? "";
 const PRIVATE_KEY: string = process.env.PRIVATE_KEY ?? "";
 
+require('hardhat-ethernal');
+
 const config: HardhatUserConfig = {
   solidity: "0.8.24",
   networks: {
+    hardhat: {
+      accounts: {
+        mnemonic: process.env.SEED_PHRASE,
+      },
+      chainId: 1337,
+      gas: "auto",
+      mining: {
+        mempool: {
+          order: "fifo"
+        }
+      },
+    },
     arbitrumSepolia: {
       url: ARBITRUM_SEPOLIA_URL,
       accounts: [PRIVATE_KEY],
@@ -30,6 +45,11 @@ const config: HardhatUserConfig = {
         },
       },
     ],
+  },
+  abiExporter: {
+    path: './app/src',
+    runOnCompile: true,
+    clear: true,
   }
 };
 
