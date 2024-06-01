@@ -5,14 +5,14 @@
 
     onMount(() => {
         isConnected();
-        role = localStorage.getItem('role');
+        role = localStorage.getItem("role");
     });
 
     function roleHover() {
         role = "ROLES";
     }
     function roleLeave() {
-        role = localStorage.getItem('role');
+        role = localStorage.getItem("role");
     }
 
     async function isConnected() {
@@ -29,17 +29,21 @@
     <div class="container mx-auto">
         <div class="flex justify-between items-center p-4">
             <!-- Logo or Brand -->
-            <a href="/" class="font-bold text-4xl text-indigo-700 hover:tracking-tighter hover:rotate-[-5deg] transition-all">BORD</a>
+            <a
+                href="/"
+                class="font-bold text-4xl text-indigo-700 hover:tracking-tighter hover:rotate-[-5deg] transition-all"
+                >BORD</a
+            >
 
             <div class="flex space-x-4">
-                <nav class="hidden md:flex items-center gap-4 lg:gap-6">
+                <nav class=" md:flex items-center gap-4 lg:gap-6">
                     <a href="#test">TEST</a>
                     <a href="/roles" class="text-xl cursor-pointer">
-                        <button 
-                        on:mouseenter={roleHover}
-                        on:mouseleave={roleLeave}
-                        class="font-mono font-bold text-xl rounded-md border border-indigo-500 py-2 px-4
-                        transition duration-200 hover:text-white hover:bg-indigo-700 "
+                        <button
+                            on:mouseenter={roleHover}
+                            on:mouseleave={roleLeave}
+                            class="font-bold text-xl rounded-md border border-indigo-500 py-2 px-4
+                        transition duration-200 hover:text-white hover:bg-indigo-700"
                             >{role}</button
                         >
                     </a>

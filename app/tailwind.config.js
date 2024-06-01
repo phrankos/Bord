@@ -3,7 +3,7 @@ export default {
   content: ['./src/**/*.{html,js,svelte,ts}'],
   theme: {
     fontFamily: {
-      'mono': ['Roboto mono']
+      'mono': ['Source Code Pro']
     },
     extend: {},
   },

@@ -9,7 +9,7 @@
     <a href="/" class="font-bold text-4xl text-indigo-700 hover:tracking-tighter hover:rotate-[-5deg] transition-all">BORD</a>
 
     <div class="flex space-x-4">
-        <nav class="hidden md:flex items-center gap-4 lg:gap-6">
+        <nav class=" md:flex items-center gap-4 lg:gap-6">
             <a href="#product" class="text-xl font-medium duration-200 hover:text-indigo-700 cursor-pointer">
                 Flow
             </a>

@@ -11,7 +11,7 @@
             <h3
                 class="text-4xl sm:text-5xl md:text-6xl max-w-[1000px] mx-auto w-full font-semibold text-center"
             >
-                How does <span class="text-1xl saira-bold text-indigo-700">BORD</span> work?
+                How does <span class="text-1xl font-bold text-indigo-700">BORD</span> work?
             </h3>
 
             <div class="flex items-center pt-10 mt:pb-14 mb-4" >

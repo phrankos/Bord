@@ -3,7 +3,6 @@
     import BuyTokensModal from "../../components/BuyTokensModal.svelte";
 
     let role = "-";
-    export let showTaskCreateModal = false; // Import the showTaskCreateModal variable
     let showTokenShopModal = false;
 
     onMount(() => {
@@ -44,7 +43,6 @@
             <div class="flex space-x-4">
                 <nav class="hidden md:flex items-center gap-4 lg:gap-6">
                     <!-- Use the imported showTaskCreateModal variable -->
-                    <a href="#" class="text-lg font-bold w-28 transition duration-200 hover:text-indigo-700" on:click={() => showTaskCreateModal = true}>Create TASK</a>
                     <a href="#" class="text-lg font-bold w-28 transition duration-200 hover:text-indigo-700" on:click={toggleTokenShop}>Token Shop</a>
                     <a href="/roles" class="text-xl cursor-pointer">
                         <button 
