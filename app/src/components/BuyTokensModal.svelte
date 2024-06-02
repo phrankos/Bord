@@ -1,30 +1,22 @@
 <script lang="ts">
     import { Contract, JsonRpcSigner, ethers } from "ethers"; // Actual BlockChain
-    import { contract, token } from "../store/index";
+    import { contract, token, tokenName} from "../store/index";
     import dappABI from "../contracts/Bord.sol/Bord.json";
     import tokenABI from "../contracts/Bord.sol/BordToken.json";
-    // import tokenABI from "../contracts/BordToken.sol/BordToken.json";
     import { onMount } from "svelte";
     import Modal from "./Modal.svelte";
 
     export let showModal: boolean;
+    export let showLoadingModal: boolean;
+    export let transactionStatus: number;
+    export let userTokenAmountDisplay: any;
     let dialog: HTMLDialogElement;
 
     onMount(() => {
         getUserTokenAmount();
         getTokenBuyPrice();
         getTokenSellPrice();
-        // test();
     });
-
-    async function test() {
-        const contract = await initializeTokenContract();
-        const dappContract = await initializeDappContract();
-        const decimals = await contract.decimals();
-        const response = await contract.approve(dappContract.target, 1n*10n**decimals);
-        const response1 = await dappContract.test();
-        console.log("aa",response1);
-    }
 
     const getSigner = async () => {
         const { ethereum } = window as any;
@@ -43,7 +35,6 @@
     };
 
     let userTokenAmount: number = 0;
-    let userTokenAmountDisplay: number = 0;
     const getUserTokenAmount = async () => {
         const BordToken = await initializeTokenContract();
         const signer = await getSigner();
@@ -52,7 +43,7 @@
             BigInt(userTokenAmount) /
                 BigInt(10n ** (await BordToken.decimals()))
         );
-        // console.log(userTokenAmountDisplay);
+        console.log(userTokenAmountDisplay);
     };
 
     let tokenBuyPrice: number;
@@ -75,20 +66,60 @@
     };
 
     const buyTokens = async () => {
-        console.log(`Buying ${tokenAmount} ${$token} tokens...`);
+        console.log(`Buying ${tokenAmount} ${$tokenName} tokens...`);
+        
+        transactionStatus = 1;
+        showLoadingModal = true;
+
         const BordToken = await initializeTokenContract();
         const price: bigint = BigInt(tokenBuyPrice) * BigInt(tokenAmount);
-        await BordToken.buyTokens(tokenAmount, { value: price });
-        console.log("Transaction Complete");
-        // loading modal
+        try {
+            const tx = await BordToken.buyTokens(tokenAmount, { value: price });
+            waitTransaction(tx);
+        } catch (error) {
+            transactionStatus = 2;
+            setTimeout(() => {
+                showLoadingModal = false;
+                getUserTokenAmount();
+            }, 500);
+        }
     };
 
     const sellTokens = async () => {
-        console.log(`Selling ${tokenAmount} ${$token} tokens...`);
-        const BordToken = await initializeTokenContract();
+        console.log(`Selling ${tokenAmount} ${$tokenName} tokens...`);
+        
+        transactionStatus = 1;
+        showLoadingModal = true;
 
-        await BordToken.sellTokens(tokenAmount);
-        // loading modal
+        const BordToken = await initializeTokenContract();
+        try {
+            const tx = await BordToken.sellTokens(tokenAmount);
+            waitTransaction(tx);
+        } catch (error) {
+            transactionStatus = 2;
+            setTimeout(() => {
+                showLoadingModal = false;
+            }, 500);
+        }
+        
+    };
+
+    const waitTransaction = async (tx: any) => {
+        transactionStatus = 1;
+        showLoadingModal = true;
+        
+        tx.wait().then(async (receipt: any) => {
+        console.log("start", receipt, receipt.status);
+          if (receipt && receipt.status == 1) {
+            console.log("end", receipt, receipt.status);
+             // transaction success.
+            transactionStatus = 0;
+            setTimeout(() => {
+                showLoadingModal = false;
+                getUserTokenAmount();
+            }, 500);
+          }
+       });
     };
 
     let tokenAmount = 5;
@@ -115,7 +146,7 @@
 <Modal bind:showModal moreClasses="bg-zinc-100">
     <div class="p-6 pb-2 w-[20rem] select-none">
         <h2 class="text-3xl text-center font-bold mb-4">
-            <span class=" text-indigo-700">{$token}</span> Token Shop
+            <span class=" text-indigo-700">{$tokenName}</span> Token Shop
         </h2>
         <p class="text-lg font-normal text-center">
             Current Tokens: <span class="font-medium"
@@ -179,7 +210,7 @@
                     on:change={handleTokenAmountChange}
                 >
                     {#each [5, 10, 50, 100] as amount}
-                        <option value={amount}>{amount} {$token}</option>
+                        <option value={amount}>{amount} {$tokenName}</option>
                     {/each}
                 </select>
                 <p class="mt-4 text-sm">

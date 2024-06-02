@@ -5,7 +5,8 @@
     export let showModal = false; // boolean
     export let showLoadingModal = false;
     export let moreClasses = ""; // boolean
-    export let transactionDone; // boolean
+    export let transactionStatus; // boolean
+    export let userTokenAmountDisplay = 0;
     export let getMyTasks = () => {}
 
     /**
@@ -40,6 +41,16 @@
         return await provider.getSigner();
     };
 
+    const getUserTokenAmount = async () => {
+        const BordToken = await initializeTokenContract();
+        const signer = await getSigner();
+        var userTokenAmount = await BordToken.balanceOf(signer.address);
+        userTokenAmountDisplay = Number(
+            BigInt(userTokenAmount) /
+                BigInt(10n ** (await BordToken.decimals()))
+        );
+    };
+
     let newTaskTitle = "";
     let newTaskContent = "";
     let newTaskReward = "";
@@ -51,36 +62,34 @@
     async function createTask() {
         showLoadingModal = true;
         showModal = false;
-        newTaskTimeLimit =
-            newTaskTimeLimitDays * 60 * 60 * 24 +
-            newTaskTimeLimitHours * 60 * 60 +
-            newTaskTimeLimitMinutes * 60 +
-            newTaskTimeLimitSeconds * 1;
+        newTaskTimeLimit = newTaskTimeLimitDays * 60 * 60 * 24 + newTaskTimeLimitHours * 60 * 60 + newTaskTimeLimitMinutes * 60 + newTaskTimeLimitSeconds * 1;
 
         const dappContract = await initializeDappContract();
         const tokenContract = await initializeTokenContract();
         const decimals = await tokenContract.decimals();
         const newTaskRewardConverted = BigInt(newTaskReward)*10n**decimals;
-        const response = await tokenContract.approve(dappContract.target, newTaskRewardConverted);
-        const tx = await dappContract.createTask(
-            newTaskTitle,
-            newTaskContent,
-            newTaskReward,
-            newTaskTimeLimit
-        );
-        transactionDone = true;
-        setTimeout(() => {
-            showLoadingModal = false;
-            getMyTasks();
-        }, 500);
+
+        transactionStatus = 1;
+        showLoadingModal = true;
+
+        try {
+            const response = await tokenContract.approve(dappContract.target, newTaskRewardConverted);
+            const tx = await dappContract.createTask(newTaskTitle, newTaskContent, newTaskReward, newTaskTimeLimit);
+            waitTransaction(tx);
+        } catch (error) {
+            transactionStatus = 2;
+            setTimeout(() => {
+                showLoadingModal = false;
+            }, 500);
+        }
     }
 
-    
     function validateForm() {
         const form = document.getElementById("createTaskForm") as HTMLFormElement;
         const rewardInputElement = document.getElementById("reward") as HTMLInputElement;
 
         const value = parseInt(rewardInputElement.value);
+        form.reportValidity();
         if (value % 2 != 1) {
             rewardInputElement.setCustomValidity("Reward must be an odd amount.");
         }
@@ -90,8 +99,25 @@
                 createTask();
             }
         }
-
     }
+
+    const waitTransaction = async (tx: any) => {
+        transactionStatus = 1;
+        showLoadingModal = true;
+        
+        tx.wait().then(async (receipt: any) => {
+          if (receipt && receipt.status == 1) {
+             // transaction success.
+            transactionStatus = 0;
+            setTimeout(() => {
+                showLoadingModal = false;
+                showModal = false;
+                getMyTasks();
+                getUserTokenAmount();
+            }, 500);
+          }
+       });
+    };
 
 </script>
 

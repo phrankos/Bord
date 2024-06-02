@@ -1,23 +1,62 @@
-<script>
+<script lang="ts">
+    import { ethers } from "ethers";
+
     /**
      * @type {boolean}
      */
     export let showModal = false; // boolean
     export let showLoadingModal = false;
-    export let transactionDone = false;
+    export let transactionStatus:number = 1;
+    export let userTokenAmountDisplay;
     export let moreClasses = ""; // boolean
-    export let taskDetails;
+    export let taskDetails: any;
     export let isEditingTask = false;
-    export let initializeDappContract = () => {}
-    export let initializeTokenContract = () => {}
+    export let getMyTasks = () => {}
+    export let initializeDappContract = async (): Promise<any> => {}
+    export let initializeTokenContract = async (): Promise<any> => {}
 
     /**
      * @type {HTMLDialogElement}
      */
-    let dialog; // HTMLDialogElement
+    let dialog: HTMLDialogElement; // HTMLDialogElement
 
     $: if (dialog && showModal) dialog.showModal();
     $: if (dialog && !showModal) dialog.close();
+
+    const getSigner = async () => {
+        const { ethereum } = window as any;
+        const provider = new ethers.BrowserProvider(ethereum);
+        return await provider.getSigner();
+    };
+    
+    const getUserTokenAmount = async () => {
+        const BordToken = await initializeTokenContract();
+        const signer = await getSigner();
+        var userTokenAmount = await BordToken.balanceOf(signer.address);
+        userTokenAmountDisplay = Number(
+            BigInt(userTokenAmount) /
+                BigInt(10n ** (await BordToken.decimals()))
+        );
+    };
+
+    const waitTransaction = async (tx: any) => {
+        transactionStatus = 1;
+        showLoadingModal = true;
+        
+        tx.wait().then(async (receipt: any) => {
+        console.log("start", receipt, receipt.status);
+          if (receipt && receipt.status == 1) {
+            console.log("end", receipt, receipt.status);
+             // transaction success.
+            transactionStatus = 0;
+            setTimeout(() => {
+                showLoadingModal = false;
+                getUserTokenAmount();
+                getMyTasks();
+            }, 500);
+          }
+       });
+    };
 
     let editTaskTimeLimitDays = 0;
     let editTaskTimeLimitHours = 0;
@@ -35,56 +74,120 @@
         editTaskTimeLimitSeconds = seconds;
     }
 
-    async function deleteTask(_taskId) {
-        isEditingTask = false;
+    async function editTask(_taskId:number) {
+        var editTitle = (document.getElementById("editTitleInput") as HTMLInputElement).value
+        var editContent = (document.getElementById("editContentInput") as HTMLTextAreaElement).value
+        var editTimeLimit = editTaskTimeLimitDays*3600*24 + editTaskTimeLimitHours*3600 + editTaskTimeLimitMinutes*60 + editTaskTimeLimitSeconds;
+        // console.log(`Title: ${editTitle}\nContent: ${editContent}\nTime Limit: ${editTimeLimit}`);
+        transactionStatus = 1;
         showLoadingModal = true;
         showModal = false;
-        const dappContract = await initializeDappContract();
-        const tokenContract = await initializeTokenContract();
+
+        const dappContract = await initializeDappContract() as any;
+        const tokenContract = await initializeTokenContract() as any;
+        const decimals = await tokenContract.decimals();
+        const editTaskPrice = BigInt(1)*10n**decimals;
+        try {
+            const response = await tokenContract.approve(dappContract.target, editTaskPrice);
+            const tx = await dappContract.editTask(_taskId, editTitle, editContent, editTimeLimit);
+            waitTransaction(tx);
+            isEditingTask = !isEditingTask;
+            showModal = false;
+        } catch (error) {
+            transactionStatus = 2;
+            setTimeout(() => {
+                showLoadingModal = false;
+            }, 500);
+        }
+    }
+
+    async function deleteTask(_taskId: number) {
+        transactionStatus = 1;
+        showLoadingModal = true;
+        showModal = false;
+
+        const dappContract = await initializeDappContract() as any;
+        const tokenContract = await initializeTokenContract() as any;
         const decimals = await tokenContract.decimals();
         const deleteTaskPrice = BigInt(1)*10n**decimals;
-        const response = await tokenContract.approve(dappContract.target, deleteTaskPrice);
-        const tx = await dappContract.deleteTask(_taskId);
-        transactionDone = true;
-        setTimeout(() => {
-            showLoadingModal = false;
-            showModal = false;
-            getMyTasks();
-        }, 500);
+        try {
+            const response = await tokenContract.approve(dappContract.target, deleteTaskPrice);
+            const tx = await dappContract.deleteTask(_taskId);
+            waitTransaction(tx);
+        } catch (error) {
+            transactionStatus = 2;
+            setTimeout(() => {
+                showLoadingModal = false;
+            }, 500);
+        }
     }
 
-    async function passTask(_taskId) {
-        isEditingTask = false;
+    async function passTask(_taskId:number) {
+        transactionStatus = 1;
         showLoadingModal = true;
         showModal = false;
-        const contract = await initializeTokenContract();
-        const tx = await contract.passTask(_taskId);
-        transactionDone = true;
-        setTimeout(() => {
-            showLoadingModal = false;
-            showModal = false;
-            getMyTasks();
-        }, 500);
+        
+        try {
+            const contract = await initializeDappContract() as any;
+            const tx = await contract.passTask(_taskId);
+            waitTransaction(tx);
+        } catch (error) {
+            transactionStatus = 2;
+            setTimeout(() => {
+                showLoadingModal = false;
+            }, 500);
+        }
     }
 
-    async function failTask(_taskId) {
-        isEditingTask = false;
+    async function failTask(_taskId:number) {
+        transactionStatus = 1;
         showLoadingModal = true;
         showModal = false;
-        const contract = await initializeTokenContract();
-        const tx = await contract.failTask(_taskId);
-        transactionDone = true;
-        setTimeout(() => {
-            showLoadingModal = false;
-            showModal = false;
-            getMyTasks();
-        }, 500);
+        try {
+            const contract = await initializeDappContract() as any;
+            const tx = await contract.failTask(_taskId);
+            waitTransaction(tx);
+        } catch (error) {
+            transactionStatus = 2;
+            setTimeout(() => {
+                showLoadingModal = false;
+                showModal = false;
+            }, 500);
+        }
     }
 
-    function validateForm() {
-        var form = document.getElementById("taskDetailsForm");
+    async function dropDoer(_taskId:number) {
+        transactionStatus = 1;
+        showLoadingModal = true;
+        showModal = false;
+        try {
+            const dappContract = await initializeDappContract() as any;
+            const tokenContract = await initializeTokenContract() as any;
+            const decimals = await tokenContract.decimals();
+            const currentDateTime = Math.floor(new Date().getTime()/1000);
+            if (currentDateTime - taskDetails.dateTimeAccepted <= taskDetails.timeLimitVal) {
+                const dropDoerEarlyPrice = BigInt(1)*10n**decimals;
+                const response = await tokenContract.approve(dappContract.target, dropDoerEarlyPrice);
+                const tx = await dappContract.dropDoerBeforeTimeLimit(_taskId);
+                waitTransaction(tx);
+            }
+            else {
+                const tx = await dappContract.dropDoerAfterTimeLimit(_taskId);
+                waitTransaction(tx);
+            }
+        } catch (error) {
+            transactionStatus = 2;
+            setTimeout(() => {
+                showLoadingModal = false;
+                showModal = false;
+            }, 500);
+        }
+    }
+
+    function validateForm(_taskId:number) {
+        var form = document.getElementById("taskDetailsForm") as HTMLFormElement;
         if(form.reportValidity()) {
-            createTask();
+            editTask(_taskId);
         }
     }
 
@@ -109,6 +212,7 @@
             <h2 class="text-3xl text-center font-bold mb-4">
                 {#if isEditingTask}
                     <input
+                        id="editTitleInput"
                         class="w-full border rounded-md border-slate-400 focus-visible:outline-indigo-500 px-1"
                         type="text"
                         required
@@ -120,7 +224,7 @@
                     <span>{taskDetails.title}</span>
                 {/if}
             </h2>
-            <p class="mb-2 font-medium text-lg">
+            <!-- <p class="mb-2 font-medium text-lg">
                 Task Id: <span class="font-normal text-base"
                     >{taskDetails.taskId}</span
                 >
@@ -136,14 +240,19 @@
                 >
             </p>
             <p class="mb-2 font-medium text-lg">
+                Status: <span class="font-normal text-base"
+                    >{taskDetails.status}</span
+                >
+            </p> -->
+            <p class="mb-2 font-medium text-lg">
                 Content:
                 {#if isEditingTask}
                     <textarea
+                        id="editContentInput"
                         required
                         minlength="2"
                         maxlength="250"
-                        bind:value={taskDetails.content}
-                        id="content"
+                        value={taskDetails.content}
                         class="w-full p-2 text-sm text-gray-700 border border-gray-300 rounded-md focus:outline-none focus-visible:outline-indigo-500"
                     ></textarea>
                 {:else}
@@ -153,26 +262,9 @@
                 {/if}
             </p>
             <p class="mb-2 font-medium text-lg">
-                Reward:
-                {#if isEditingTask}
-                    <input
-                        class=" w-fit font-normal text-base border rounded-md border-slate-400 focus-visible:outline-indigo-500 px-1"
-                        required
-                        min=3
-                        type="number"
-                        value={taskDetails.reward}
-                    />
-                    <span class="font-normal text-base">BRD</span>
-                {:else}
-                    <span class="font-normal text-base"
-                        >{taskDetails.reward} BRD</span
-                    >
-                {/if}
-            </p>
-            <p class="mb-2 font-medium text-lg">
-                Status: <span class="font-normal text-base"
-                    >{taskDetails.status}</span
-                >
+                Reward: <span class="font-normal text-base"
+                >{taskDetails.reward} BRD</span
+            >
             </p>
             <p class="mb-2 font-medium text-lg">
                 Date Created: <span class="font-normal text-base"
@@ -242,11 +334,13 @@
                     >
                 {/if}
             </p>
-            <p class="mb-2 font-medium text-lg">
-                Video Link: <span class="font-normal text-base"
-                    >{taskDetails.videoLink}</span
-                >
-            </p>
+            {#if taskDetails.statusVal != 0 && taskDetails.statusVal != 1}
+                <p class="mb-2 font-medium text-lg">
+                    Video Link: <a href="{taskDetails.videoLink}" class=" font-medium text-base text-indigo-700"
+                        >{taskDetails.videoLink}</a
+                    >
+                </p>
+            {/if}
             {#if taskDetails.statusVal == 0}
                 <div class="mt-4">
                     {#if !isEditingTask}
@@ -257,7 +351,7 @@
                         >
                     {:else}
                         <button
-                            on:click={validateForm}
+                            on:click={() => validateForm(taskDetails.taskId)}
                             class=" w-[49%] rounded-md btn p-2 text-md font-bold border border-indigo-700 text-indigo-500 bg-white duration-150 mb-2 hover:bg-indigo-700 hover:text-white"
                             >Submit</button
                         >
@@ -285,6 +379,15 @@
                         on:click={() => failTask(taskDetails.taskId)}
                         class="w-full rounded-md btn p-2 text-md font-bold border border-rose-700 text-rose-700 bg-white duration-150
       hover:bg-rose-700 hover:text-white">Fail Task</button
+                    >
+                </div>
+            {/if}
+            {#if taskDetails.statusVal == 1}
+                <div class="mt-4">
+                    <button
+                        on:click={() => dropDoer(taskDetails.taskId)}
+                        class="w-full rounded-md btn p-2 text-md font-bold border border-rose-700 text-rose-700 bg-white duration-150 mb-2 hover:bg-rose-700 hover:text-white"
+                        >Drop DOER</button
                     >
                 </div>
             {/if}

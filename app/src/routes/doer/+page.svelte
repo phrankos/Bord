@@ -1,15 +1,18 @@
 <script lang="ts">
-    import DoerNavBar from "../../components/DoerDashboard/DoerNavBar.svelte";
     import { onMount } from "svelte";
     import { Contract, JsonRpcSigner, ethers } from "ethers"; // Actual BlockChain
-    import { contract } from "../../store/index";
+    import { contract, token } from "../../store/index";
     import ABI from "../../contracts/Bord.sol/Bord.json";
+    import tokenABI from "../../contracts/Bord.sol/BordToken.json";
     import SectionWrapper from "../../components/SectionWrapper.svelte";
     import Modal from "../../components/Modal.svelte";
     import LoadingModal from "../../components/LoadingModal.svelte";
     import { goto } from "$app/navigation";
+    import NavBarApp from "../../components/NavBarApp.svelte";
 
     let currentAccount: string;
+    let transactionStatus: number = 1;
+    let userTokenAmountDisplay = 0;
     async function getCurrentAccount() {
         const { ethereum } = window as any;
         const accounts = await ethereum.request({ method: "eth_accounts" });
@@ -51,7 +54,7 @@
                 status: any;
                 statusVal: any;
                 videoLink: any;
-                viewPrice: any;
+                // viewPrice: any;
             }) => ({
                 taskId: task.taskId,
                 asker: task.asker,
@@ -105,7 +108,7 @@
                 })(),
                 statusVal: Number(task.status),
                 videoLink: task.videoLink,
-                viewPrice: task.viewPrice,
+                // viewPrice: task.viewPrice,
             })
         );
         filteredTasks = tasks;
@@ -129,7 +132,7 @@
                 status: any;
                 statusVal: any;
                 videoLink: any;
-                viewPrice: any;
+                // viewPrice: any;
             }) => ({
                 taskId: task.taskId,
                 asker: task.asker,
@@ -190,7 +193,7 @@
                 })(),
                 statusVal: Number(task.status),
                 videoLink: task.videoLink,
-                viewPrice: task.viewPrice,
+                // viewPrice: task.viewPrice,
             })
         );
         console.log(myTasks);
@@ -208,7 +211,7 @@
         status: "",
         statusVal: 0,
         videoLink: "",
-        viewPrice: 0,
+        // viewPrice: 0,
     };
 
     let showLoadingModal: boolean = false;
@@ -219,21 +222,52 @@
         taskDetails = filteredTasks.filter((task) => task.taskId === taskId)[0];
     }
 
-    function waitTransaction() {
-        transactionDone = true;
-        setTimeout(() => {
-            showLoadingModal = false;
-            showTaskDetailsModal = false;
-            getOpenTasks();
-            getTasksByDoer();
-        }, 500);
-    }
+    const waitTransaction = async (tx: any) => {
+        transactionStatus = 1;
+        showLoadingModal = true;
+        
+        tx.wait().then(async (receipt: any) => {
+        console.log("start", receipt, receipt.status);
+          if (receipt && receipt.status == 1) {
+            console.log("end", receipt, receipt.status);
+             // transaction success.
+            transactionStatus = 0;
+            setTimeout(() => {
+                showLoadingModal = false;
+                getUserTokenAmount();
+                getOpenTasks();
+                getTasksByDoer();
+            }, 500);
+          }
+       });
+    };
+    const getSigner = async () => {
+        const { ethereum } = window as any;
+        const provider = new ethers.BrowserProvider(ethereum);
+        return await provider.getSigner();
+    };
+    const initializeTokenContract = async () => {
+        const signer = await getSigner();
+        return new Contract($token, tokenABI, signer);
+    };
+    const getUserTokenAmount = async () => {
+        const BordToken = await initializeTokenContract();
+        const signer = await getSigner();
+        var userTokenAmount = await BordToken.balanceOf(signer.address);
+        userTokenAmountDisplay = Number(
+            BigInt(userTokenAmount) /
+                BigInt(10n ** (await BordToken.decimals()))
+        );
+    };
 
     async function acceptTask(_taskId: number) {
         showLoadingModal = true;
+        transactionDone = false;
         const contract = await initializeContract();
         try {
             const tx = await contract.acceptTask(_taskId);
+            tx.wait();
+            console.log(tx)
             waitTransaction();
         } catch {
             console.log("An error has occured. Please try the transaction again.");
@@ -270,7 +304,8 @@
         showLoadingModal = true;
         const contract = await initializeContract();
         try {
-            const tx = await contract.submitTask(_taskId, "_videoLink", taskDetails.viewPrice);
+            const tx = await contract.submitTask(_taskId, taskDetails.videoLink);
+            // const tx = await contract.submitTask(_taskId, "_videoLink", taskDetails.viewPrice);
             waitTransaction();
         } catch {
             console.log("An error has occured. Please try the transaction again.");
@@ -298,11 +333,21 @@
             console.log("An error has occured. Please try the transaction again.");
         }
     }
+
+    
+
+    function validateForm() {
+        var form = document.getElementById("taskDetailsForm") as HTMLFormElement;
+        if(form.reportValidity()) {
+            submitTask(Number(taskDetails.taskId))
+        }
+    }
+
 </script>
 
 <title>DOER Dashboard</title>
 
-<DoerNavBar />
+<NavBarApp bind:showLoadingModal bind:transactionStatus={transactionStatus} bind:userTokenAmountDisplay/>
 <main class="flex flex-col">
     <SectionWrapper id="AskerDash">
         <div class="pt-10 pb-20">
@@ -340,10 +385,15 @@
                                 >
                             </p>
                             <p class=" font-medium">
+                                Time Limit: <span class="font-normal"
+                                    >{task.timeLimit}</span
+                                >
+                            </p>
+                            <!-- <p class=" font-medium">
                                 Status: <span class="font-normal"
                                     >{task.status}</span
                                 >
-                            </p>
+                            </p> -->
                             <p class=" font-medium">
                                 Date Created: <span class="font-normal"
                                     >{new Date(task.dateTimeCreated * 1000)
@@ -359,15 +409,15 @@
     </SectionWrapper>
 
     {#if showLoadingModal}
-        <LoadingModal bind:showLoadingModal bind:transactionDone />
+        <LoadingModal bind:showLoadingModal bind:transactionStatus={transactionStatus} />
     {/if}
 
-    <Modal bind:showModal={showTaskDetailsModal} moreClasses="focus-visible:outline-none select-none">
-        <div class="p-6">
+    <Modal bind:showModal={showTaskDetailsModal} moreClasses="w-[40rem] focus-visible:outline-none select-none">
+        <form id="taskDetailsForm" class="p-6">
             <h2 class="text-3xl text-center font-bold mb-4">
                 {taskDetails.title}
             </h2>
-            <p class="mb-2 font-medium text-lg">
+            <!-- <p class="mb-2 font-medium text-lg">
                 Task Id: <span class="font-normal text-base"
                     >{taskDetails.taskId}</span
                 >
@@ -381,7 +431,7 @@
                 Doer: <span class="font-normal text-base"
                     >{taskDetails.doer}</span
                 >
-            </p>
+            </p> -->
             <p class="mb-2 font-medium text-lg">
                 Content: <span class="font-normal text-base"
                     >{taskDetails.content}</span
@@ -392,11 +442,11 @@
                     >{taskDetails.reward}</span
                 >
             </p>
-            <p class="mb-2 font-medium text-lg">
+            <!-- <p class="mb-2 font-medium text-lg">
                 Status: <span class="font-normal text-base"
                     >{taskDetails.status}</span
                 >
-            </p>
+            </p> -->
             <p class="mb-2 font-medium text-lg">
                 Date Created: <span class="font-normal text-base"
                     >{new Date(taskDetails.dateTimeCreated * 1000)
@@ -409,14 +459,17 @@
                     >{taskDetails.timeLimit}</span
                 >
             </p>
-            <p class="mb-2 font-medium text-lg">
-                Video Link: 
-                {#if taskDetails.statusVal == 1 && Number(currentAccount) == Number(taskDetails.doer)}
-                    <input required type="url" id="videoLink" placeholder="Enter a video link" bind:value={taskDetails.videoLink} class="p-2 text-sm text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500">
-                {:else}
-                    <span class="font-normal text-base">{taskDetails.videoLink}</span>
-                {/if}
-            </p>
+            {#if taskDetails.statusVal != 0 && taskDetails.statusVal != 1}
+                <p class="mb-2 font-medium text-lg">
+                    Video Link: 
+                    {#if taskDetails.statusVal == 1 && Number(currentAccount) == Number(taskDetails.doer)}
+                        <input required type="url" id="videoLink" placeholder="Enter a video link" bind:value={taskDetails.videoLink} class="p-2 text-sm text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500">
+                    {:else}
+                    <a href="{taskDetails.videoLink}" class=" font-medium text-base text-indigo-700"
+                    >{taskDetails.videoLink}</a>
+                    {/if}
+                </p>
+            {/if}
             <div class="mt-4">
                 {#if taskDetails.statusVal == 0 && Number(currentAccount) != Number(taskDetails.asker)}
                     <button
@@ -425,12 +478,12 @@
        hover:bg-indigo-700 hover:text-white">Accept Task</button 
                     >
                 {:else if taskDetails.statusVal == 1}
-                <p class="mb-2 font-medium text-lg">
+                <!-- <p class="mb-2 font-medium text-lg">
                     View Price: 
                     <input required type="number" min=1 id="viewPrice" bind:value={taskDetails.viewPrice} class="p-2 text-sm text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500">
-                </p>
+                </p> -->
                     <button
-                        on:click={() => submitTask(Number(taskDetails.taskId))}
+                        on:click={validateForm}
                         class="w-full rounded-md btn p-2 text-md font-bold border border-teal-600 text-teal-600 bg-white duration-150 mb-2 
     hover:bg-teal-600 hover:text-white">Submit Task</button 
                     >
@@ -453,6 +506,6 @@
                     >
                 {/if}
             </div>
-        </div>
+        </form>
     </Modal>
 </main>

@@ -1,14 +1,14 @@
-<script>
+<script lang="ts">
 	/**
 	 * @type {boolean}
 	 */
 	export let showLoadingModal = false;
-	export let transactionDone = false;
+	export let transactionStatus = 1;	// 0: Done ; 1: Waiting ; 2: Failed
   
 	/**
 	 * @type {HTMLDialogElement}
 	 */
-	let dialog; // HTMLDialogElement
+	let dialog: HTMLDialogElement; // HTMLDialogElement
   
 	$: if (dialog && showLoadingModal) dialog.showModal();
 	$: if (dialog &&!showLoadingModal) dialog.close();
@@ -20,14 +20,17 @@
 	on:close={() => (showLoadingModal = false)}
   >
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
-	<div class="p-8 pt-12 flex-col text-center" on:click|stopPropagation>
+	<div class=" w-96 p-8 pt-12 flex-col text-center" on:click|stopPropagation>
 	  <div class="text-5xl flex-col justify-center">
-		{#if !transactionDone}
-		<i class="fa-solid fa-spinner fa-spin text-indigo-600"></i>
-	  	<div class="text-2xl mt-6">Waiting for transaction to be mined</div>
-		{:else}
-		<i class="fa-regular fa-circle-check text-indigo-600"></i>
+		{#if transactionStatus == 1}
+		<i class="fa-solid fa-circle-notch fa-spin text-indigo-600"></i>
+	  	<div class="text-2xl mt-6">Transaction Pending</div>
+		{:else if transactionStatus == 0}
+		<i class="fa-solid fa-circle-check text-emerald-600"></i>
 		<div class="text-2xl mt-6">Transaction Complete</div>
+		{:else if transactionStatus == 2}
+		<i class="fa-solid fa-circle-xmark text-rose-600"></i>
+		<div class="text-2xl mt-6">Transaction Failed</div>
 		{/if}
 	  </div>
 	  <slot />

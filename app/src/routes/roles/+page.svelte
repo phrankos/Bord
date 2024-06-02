@@ -45,7 +45,7 @@
         <i class="group-hover:text-indigo-700 text-white fa-solid fa-users-line duration-200"/>
         JUDGE
         <p class="opacity-0 group-hover:opacity-100 text-lg mt-4 text-center transition duration-200">
-            Crown champions and enjoy the fun!
+            Settle disputes and enjoy the fun!
         </p>
     </button>
 </main>

@@ -1,26 +1,182 @@
 <script lang="ts">
-  import { Contract, JsonRpcSigner, ethers } from "ethers"; // Actual BlockChain
-  import { contract } from "../../store/index";
-  import ABI from "../../contracts/Bord.sol/Bord.json";
-  import { onMount } from "svelte";
-  import { goto } from "$app/navigation";
-  import AskerNavBar from "../../components/AskerDashboard/AskerNavBar.svelte";
-  import SectionWrapper from "../../components/SectionWrapper.svelte";
-  import Modal from "../../components/Modal.svelte";
-  import LoadingModal from "../../components/LoadingModal.svelte";
-  import TaskDetailsModal from "../../components/AskerDashboard/TaskDetailsModal.svelte";
-  import JudgeNavBar from "../../components/JudgeDashboard/JudgeNavBar.svelte";
+    import { Contract, JsonRpcSigner, ethers } from "ethers"; // Actual BlockChain
+    import { contract, token } from "../../store/index";
+    import { onMount } from "svelte";
+    import { goto } from "$app/navigation";
+    import SectionWrapper from "../../components/SectionWrapper.svelte";
+    import LoadingModal from "../../components/LoadingModal.svelte";
+    import TaskDetailsModal from "../../components/JudgeDashboard/TaskDetailsModal.svelte";
+    import NavBarApp from "../../components/NavBarApp.svelte";
+    import dappABI from "../../contracts/Bord.sol/Bord.json";
+    import tokenABI from "../../contracts/Bord.sol/BordToken.json";
+
+    let currentAccount: string;
+    async function getCurrentAccount() {
+        const { ethereum } = window as any;
+        const accounts = await ethereum.request({ method: "eth_accounts" });
+        currentAccount = accounts[0];
+    }
+    onMount(() => {
+        if (localStorage.getItem("role") != "JUDGE") {
+            goto("/roles", {});
+        }
+        getCurrentAccount();
+        getAllTasks();
+    });
+
+    const getSigner = async () => {
+        const { ethereum } = window as any;
+        const provider = new ethers.BrowserProvider(ethereum);
+        return await provider.getSigner();
+    };
+
+    const initializeDappContract = async () => {
+        const signer = await getSigner();
+        return new Contract($contract, dappABI, signer);
+    };
+
+    const initializeTokenContract = async () => {
+        const signer = await getSigner();
+        return new Contract($token, tokenABI, signer);
+    };
+
+    async function getAllTasks() {
+        const dappContract = await initializeDappContract();
+        const tasksResponse = await dappContract.getAllTasks();
+        tasks = tasksResponse.map(
+            (task: {
+                taskId: any;
+                asker: any;
+                doer: any;
+                title: any;
+                content: any;
+                reward: any;
+                dateTimeCreated: any;
+                timeLimit: any;
+                status: any;
+                statusVal: any;
+                videoLink: any;
+                // viewPrice: any;
+            }) => ({
+                taskId: task.taskId,
+                asker: task.asker,
+                doer: task.doer,
+                title: task.title,
+                content: task.content,
+                reward: Number(task.reward),
+                dateTimeCreated: Number(task.dateTimeCreated),
+                timeLimit: (function () {
+                    var seconds = Number(task.timeLimit);
+                    const days = Math.floor(seconds / (3600 * 24));
+                    seconds -= days * 3600 * 24;
+                    const hours = Math.floor(seconds / 3600);
+                    seconds -= hours * 3600;
+                    const minutes = Math.floor(seconds / 60);
+                    seconds -= minutes * 60;
+
+                    let formatted = "";
+                    if (days > 0)
+                        formatted += `${days} day${days > 1 ? "s" : ""} `;
+                    if (hours > 0)
+                        formatted += `${hours} hour${hours > 1 ? "s" : ""} `;
+                    if (minutes > 0)
+                        formatted += `${minutes} minute${minutes > 1 ? "s" : ""} `;
+                    if (seconds > 0 || formatted === "")
+                        formatted += `${seconds} second${seconds !== 1 ? "s" : ""}`;
+
+                    return formatted.trim();
+                })(),
+                status: (function () {
+                    switch (Number(task.status)) {
+                        case -1:
+                            return "Deleted";
+                        case 0:
+                            return "Open";
+                        case 1:
+                            return "Accepted";
+                        case 2:
+                            return "Submitted";
+                        case 3:
+                            return "Completed";
+                        case 4:
+                            return "Claimable";
+                        case 5:
+                            return "Failed";
+                        case 6:
+                            return "Disputing";
+                        default:
+                            return "NULL";
+                    }
+                })(),
+                statusVal: Number(task.status),
+                videoLink: task.videoLink,
+                // viewPrice: task.viewPrice,
+            })
+        );
+        filteredTasks = tasks;
+        setFilter("All");
+        console.log(tasks);
+    }
+    
+    let taskDetails = {
+        taskId: 0,
+        asker: "",
+        doer: "",
+        title: "",
+        content: "",
+        reward: 0,
+        dateTimeCreated: 0,
+        dateTimeAccepted: 0,
+        timeLimit: 0,
+        timeLimitVal: 0,
+        status: "",
+        statusVal: 0,
+        videoLink: "",
+        viewPrice: 0
+    };
+    let tasks: any[] = [];
+    let filteredTasks: any[] = [];
+    let showLoadingModal: boolean = false;
+    let showTaskDetailsModal: boolean = false;
+    let isEditingTask = false;
+    let voteStatus: any;
+    let transactionStatus: number = 1;
+    let userTokenAmountDisplay = 0;
+
+    async function openTaskDetails(taskId: number) {
+        isEditingTask = false;
+        taskDetails = tasks.filter((task) => task.taskId === taskId)[0];
+        const dappContract = await initializeDappContract();
+        voteStatus = await dappContract.getTaskVoteStatus(taskId);
+        showTaskDetailsModal = true;
+    }
+
+    let filter = "All";
+    function setFilter(_filter: string) {
+        filter = _filter;
+        if (filter === "All") {
+            console.log("aaa")
+            filteredTasks = tasks.filter((task) => task.statusVal != -1 && task.statusVal != 0 && task.statusVal != 1 && task.statusVal != 5);
+        }
+        else {
+            filteredTasks = tasks.filter((task) => task.status === _filter);
+        }
+        console.log(_filter)
+        console.log(filteredTasks);
+    }
+
+
 </script>
 
 <title>JUDGE Dashboard</title>
-<JudgeNavBar/>
+<NavBarApp bind:showLoadingModal bind:transactionStatus={transactionStatus} bind:userTokenAmountDisplay/>
 
 <main class="flex flex-col">
-  <SectionWrapper id="AskerDash">
+  <SectionWrapper id="JudgeDash">
       <div class="pt-10 pb-20">
-          <h1 class="text-5xl font-bold mb-4">ASKER Dashboard</h1>
+          <h1 class="text-5xl font-bold mb-4">JUDGE Dashboard</h1>
           <ul class="text-xl select-none flex text-center mt-8">
-              {#each ["All", "Open", "Accepted", "Submitted", "Completed", "Deleted"] as status}
+              {#each ["All", "Disputing"] as status}
                   <!-- svelte-ignore a11y-click-events-have-key-events -->
                   <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
                   <li
@@ -47,8 +203,8 @@
                           <h2 class="text-xl font-bold">{task.title}</h2>
                           <!-- <p>Content: {task.content}</p> -->
                           <p class=" font-medium">
-                              Prize: <span class="font-normal"
-                                  >{task.prize}</span
+                              Reward: <span class="font-normal"
+                                  >{task.reward}</span
                               >
                           </p>
                           <p class=" font-medium">
@@ -70,109 +226,12 @@
       </div>
   </SectionWrapper>
 
-  {#if showLoadingModal}
-      <LoadingModal bind:showLoadingModal bind:transactionDone />
-  {/if}
+    {#if showLoadingModal}
+        <LoadingModal bind:showLoadingModal bind:transactionStatus={transactionStatus} />
+    {/if}
 
-  {#if showTaskDetailsModal}
-      <TaskDetailsModal bind:showModal={showTaskDetailsModal} bind:taskDetails/>
-  {/if}
-
-  {#if showTaskCreateModal}
-      <Modal bind:showModal={showTaskCreateModal}>
-          <div class="w-[25rem] p-4 mx-auto bg-white rounded-md">
-              <h2 class="text-lg font-bold mb-4">Create TASK</h2>
-              <form>
-                  <div class="flex flex-col mb-4">
-                      <span class="text-sm font-medium text-gray-700"
-                          >Title</span
-                      >
-                      <input
-                          bind:value={newTaskTitle}
-                          type="text"
-                          id="title"
-                          class="w-full p-2 text-sm text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500"
-                      />
-                  </div>
-                  <div class="flex flex-col mb-4">
-                      <span class="text-sm font-medium text-gray-700"
-                          >Content</span
-                      >
-                      <textarea
-                          bind:value={newTaskContent}
-                          id="content"
-                          class="w-full p-2 text-sm text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500"
-                      ></textarea>
-                  </div>
-                  <div class="flex flex-col mb-4">
-                      <span class="text-sm font-medium text-gray-700"
-                          >Prize</span
-                      >
-                      <input
-                          bind:value={newTaskPrize}
-                          type="number"
-                          min="1"
-                          id="prize"
-                          class="w-full p-2 text-sm text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500"
-                      />
-                  </div>
-                  <div class="flex flex-col mb-4">
-                      <span class="text-sm font-medium text-gray-700"
-                          >Time Limit</span
-                      >
-                      <div class="grid grid-cols-4 gap-2">
-                          <span class="text-sm font-medium text-gray-700"
-                              >Days</span
-                          >
-                          <span class="text-sm font-medium text-gray-700"
-                              >Hours</span
-                          >
-                          <span class="text-sm font-medium text-gray-700"
-                              >Minutes</span
-                          >
-                          <span class="text-sm font-medium text-gray-700"
-                              >Seconds</span
-                          >
-                          <input
-                              bind:value={newTaskTimeLimitDays}
-                              type="number"
-                              min="0"
-                              class="p-2 text-sm text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500"
-                          />
-                          <input
-                              bind:value={newTaskTimeLimitHours}
-                              type="number"
-                              min="0"
-                              class="p-2 text-sm text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500"
-                          />
-                          <input
-                              bind:value={newTaskTimeLimitMinutes}
-                              type="number"
-                              min="0"
-                              class="p-2 text-sm text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500"
-                          />
-                          <input
-                              bind:value={newTaskTimeLimitSeconds}
-                              type="number"
-                              min="1"
-                              class="p-2 text-sm text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500"
-                          />
-                      </div>
-                  </div>
-              </form>
-              <div class="flex justify-end mt-4">
-                  <button
-                      on:click={() => (showTaskCreateModal = false)}
-                      class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md"
-                      >Cancel</button
-                  >
-                  <button
-                      on:click={createTask}
-                      class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md ml-2"
-                      >Create</button
-                  >
-              </div>
-          </div>
-      </Modal>
-  {/if}
+    {#if showTaskDetailsModal}
+        <TaskDetailsModal bind:showModal={showTaskDetailsModal} bind:taskDetails bind:voteStatus 
+        initializeDappContract={initializeDappContract} initializeTokenContract={initializeTokenContract}/>
+    {/if}
 </main>

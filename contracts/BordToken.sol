@@ -33,7 +33,7 @@ contract BordTokens is
         return balanceOf(msg.sender);
     }
 
-    function mint(address to, uint256 amount) public onlyOwner {
+    function mint(address to, uint256 amount) public {
         _mint(to, amount);
     }
 
@@ -64,6 +64,10 @@ contract BordTokens is
 
         // Emit the contract balance
         emit ContractBalance(address(this).balance);
+    }
+
+    function withdrawBalance() external onlyOwner {
+        payable(owner()).transfer(address(this).balance);
     }
 }
 

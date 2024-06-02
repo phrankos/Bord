@@ -5,11 +5,11 @@
     import tokenABI from "../../contracts/Bord.sol/BordToken.json";
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
-    import AskerNavBar from "../../components/AskerDashboard/AskerNavBar.svelte";
     import SectionWrapper from "../../components/SectionWrapper.svelte";
     import LoadingModal from "../../components/LoadingModal.svelte";
     import TaskDetailsModal from "../../components/AskerDashboard/TaskDetailsModal.svelte";
     import CreateTaskModal from "../../components/AskerDashboard/CreateTaskModal.svelte";
+    import NavBarApp from "../../components/NavBarApp.svelte";
 
     onMount(() => {
         if (localStorage.getItem("role") != "ASKER") {
@@ -36,9 +36,9 @@
 
     let tasks: any[] = [];
     let filteredTasks: any[] = [];
-    let transactionDone: boolean = false;
+    let transactionStatus: number = 1;
     let showLoadingModal: boolean = false;
-
+    let userTokenAmountDisplay = 0;
 
     async function getMyTasks() {
         const contract = await initializeDappContract();
@@ -58,7 +58,7 @@
                 status: any;
                 statusVal: any;
                 videoLink: any;
-                viewPrice: any;
+                // viewPrice: any;
             }) => ({
                 taskId: task.taskId,
                 asker: task.asker,
@@ -114,7 +114,7 @@
                 })(),
                 statusVal: Number(task.status),
                 videoLink: task.videoLink,
-                viewPrice: task.viewPrice
+                // viewPrice: task.viewPrice
             })
         );
         filteredTasks = tasks;
@@ -135,7 +135,7 @@
         status: "",
         statusVal: 0,
         videoLink: "",
-        viewPrice: 0
+        // viewPrice: 0
     };
 
     let showTaskDetailsModal: boolean = false;
@@ -158,12 +158,19 @@
 
 <title>ASKER Dashboard</title>
 
-<AskerNavBar bind:showTaskCreateModal/>
+<NavBarApp bind:showLoadingModal bind:transactionStatus={transactionStatus} bind:userTokenAmountDisplay/>
 <main class="flex flex-col">
     <SectionWrapper id="AskerDash">
         <div class="pt-10 pb-20">
             <h1 class="text-5xl font-bold mb-4">ASKER Dashboard</h1>
-            <ul class="text-xl select-none flex text-center mt-8">
+            <div class="flex max-w-full mt-6">
+                <button class="w-fit inline-block text-xl font-bold text-indigo-700 rounded-md border border-indigo-500 py-2 px-4
+                transition duration-200 hover:text-white hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-300" on:click={() => showTaskCreateModal = true}>
+                    <i class="fa-solid fa-square-plus"></i>
+                    Create TASK
+                </button>
+            </div>
+            <ul class="block text-xl select-none flex text-center mt-3">
                 {#each ["Open", "Accepted", "Submitted", "Claimable", "Completed", "Failed", "Disputing"] as status}
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
@@ -196,10 +203,15 @@
                                 >
                             </p>
                             <p class=" font-medium">
+                                Time Limit: <span class="font-normal"
+                                    >{task.timeLimit}</span
+                                >
+                            </p>
+                            <!-- <p class=" font-medium">
                                 Status: <span class="font-normal"
                                     >{task.status}</span
                                 >
-                            </p>
+                            </p> -->
                             <p class=" font-medium">
                                 Date Created: <span class="font-normal"
                                     >{new Date(task.dateTimeCreated * 1000)
@@ -215,15 +227,15 @@
     </SectionWrapper>
 
     {#if showLoadingModal}
-        <LoadingModal bind:showLoadingModal bind:transactionDone />
+        <LoadingModal bind:showLoadingModal bind:transactionStatus={transactionStatus} />
     {/if}
 
     {#if showTaskDetailsModal}
-        <TaskDetailsModal bind:showModal={showTaskDetailsModal} bind:taskDetails bind:isEditingTask bind:showLoadingModal bind:transactionDone 
-        initializeDappContract={initializeDappContract} initializeTokenContract={initializeTokenContract}/>
+        <TaskDetailsModal bind:showModal={showTaskDetailsModal} bind:taskDetails bind:isEditingTask bind:showLoadingModal bind:transactionStatus={transactionStatus} 
+        initializeDappContract={initializeDappContract} initializeTokenContract={initializeTokenContract}  bind:userTokenAmountDisplay getMyTasks={getMyTasks}/>
     {/if}
 
     {#if showTaskCreateModal}
-        <CreateTaskModal bind:showLoadingModal bind:transactionDone getMyTasks={getMyTasks} bind:showModal={showTaskCreateModal} />
+        <CreateTaskModal bind:showLoadingModal bind:transactionStatus={transactionStatus} getMyTasks={getMyTasks} bind:showModal={showTaskCreateModal}  bind:userTokenAmountDisplay/>
     {/if}
 </main>
