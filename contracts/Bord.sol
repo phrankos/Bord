@@ -48,8 +48,8 @@ contract Bord is Ownable(msg.sender) {
     uint256 votePrice;
     // uint256 viewTaskPrice;
 
-    constructor(address _BordTokenAddress) {
-        bordToken =  BordToken(_BordTokenAddress);
+    constructor() {
+        bordToken =  BordToken(0xb54F33E03b0536c928C7dd8a54A92b604a8c4BA9);
 
         editTaskPrice = 1 * 10**bordToken.decimals();
         deleteTaskPrice = 1 * 10**bordToken.decimals();

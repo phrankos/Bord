@@ -31,18 +31,18 @@ async function main() {
     // console.log("BordToken deployed to:", bordToken.target);
 
 
-    require("hardhat-ethernal");
-    const hre = require("hardhat");
-    await hre.ethernal.push({
-        name: "Bord",
-        address: bord.target,
-        workspace: "hardhat", // Optional, will override the workspace set in hardhat.config for this call only
-    });
-    await hre.ethernal.push({
-        name: "BordToken",
-        address: bordToken.target,
-        workspace: "hardhat", // Optional, will override the workspace set in hardhat.config for this call only
-    });
+    // require("hardhat-ethernal");
+    // const hre = require("hardhat");
+    // await hre.ethernal.push({
+    //     name: "Bord",
+    //     address: bord.target,
+    //     workspace: "hardhat", // Optional, will override the workspace set in hardhat.config for this call only
+    // });
+    // await hre.ethernal.push({
+    //     name: "BordToken",
+    //     address: bordToken.target,
+    //     workspace: "hardhat", // Optional, will override the workspace set in hardhat.config for this call only
+    // });
 }
 
 // We recommend this pattern to be able to use async/await everywhere

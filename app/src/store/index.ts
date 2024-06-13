@@ -1,5 +1,5 @@
 import { readable } from "svelte/store";
 
-export var contract = readable("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512");
-export var token = readable("0x5FbDB2315678afecb367f032d93F642f64180aa3");
+export var contract = readable("0x0637EB8d44Ce467f776a79A339af0a4f9F6B93A2");
+export var token = readable("0xb54F33E03b0536c928C7dd8a54A92b604a8c4BA9");
 export var tokenName = readable("BRD");
