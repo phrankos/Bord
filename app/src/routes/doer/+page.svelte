@@ -25,6 +25,7 @@
         getCurrentAccount();
         getOpenTasks();
         getTasksByDoer();
+        setFilter("Open");
     });
 
     const initializeContract = async () => {
@@ -112,8 +113,7 @@
             })
         );
         filteredTasks = tasks;
-        setFilter("Open");
-        console.log(tasks);
+        setFilter(filter);
     }
 
     async function getTasksByDoer() {
@@ -196,7 +196,7 @@
                 // viewPrice: task.viewPrice,
             })
         );
-        console.log(myTasks);
+        setFilter(filter);
     }
 
     let taskDetails = {
@@ -215,7 +215,6 @@
     };
 
     let showLoadingModal: boolean = false;
-    let transactionDone: boolean = false;
     let showTaskDetailsModal: boolean = false;
     async function openTaskDetails(taskId: number) {
         showTaskDetailsModal = true;
@@ -261,16 +260,18 @@
     };
 
     async function acceptTask(_taskId: number) {
+        transactionStatus = 1;
         showLoadingModal = true;
-        transactionDone = false;
-        const contract = await initializeContract();
+        showTaskDetailsModal = false;
         try {
+            const contract = await initializeContract();
             const tx = await contract.acceptTask(_taskId);
-            tx.wait();
-            console.log(tx)
-            waitTransaction();
-        } catch {
-            console.log("An error has occured. Please try the transaction again.");
+            waitTransaction(tx);
+        } catch (error) {
+            transactionStatus = 2;
+            setTimeout(() => {
+                showLoadingModal = false;
+            }, 500);
         }
     }
 
@@ -290,47 +291,66 @@
     }
 
     async function abandonTask(_taskId: number) {
+        transactionStatus = 1;
         showLoadingModal = true;
-        const contract = await initializeContract();
+        showTaskDetailsModal = false;
         try {
+            const contract = await initializeContract();
             const tx = await contract.abandonTask(_taskId);
-            waitTransaction();
-        } catch {
-            console.log("An error has occured. Please try the transaction again.");
+            waitTransaction(tx);
+        } catch (error) {
+            transactionStatus = 2;
+            setTimeout(() => {
+                showLoadingModal = false;
+            }, 500);
         }
     }
 
     async function submitTask(_taskId: number) {
+        transactionStatus = 1;
         showLoadingModal = true;
-        const contract = await initializeContract();
+        showTaskDetailsModal = false;
         try {
+            const contract = await initializeContract();
             const tx = await contract.submitTask(_taskId, taskDetails.videoLink);
-            // const tx = await contract.submitTask(_taskId, "_videoLink", taskDetails.viewPrice);
-            waitTransaction();
-        } catch {
-            console.log("An error has occured. Please try the transaction again.");
+            waitTransaction(tx);
+        } catch (error) {
+            transactionStatus = 2;
+            setTimeout(() => {
+                showLoadingModal = false;
+            }, 500);
         }
     }
 
     async function claimReward(_taskId: number) {
+        transactionStatus = 1;
         showLoadingModal = true;
-        const contract = await initializeContract();
+        showTaskDetailsModal = false;
         try {
+            const contract = await initializeContract();
             const tx = await contract.claimReward(_taskId);
-            waitTransaction();
-        } catch {
-            console.log("An error has occured. Please try the transaction again.");
+            waitTransaction(tx);
+        } catch (error) {
+            transactionStatus = 2;
+            setTimeout(() => {
+                showLoadingModal = false;
+            }, 500);
         }
     }
 
     async function disputeTask(_taskId: number) {
+        transactionStatus = 1;
         showLoadingModal = true;
-        const contract = await initializeContract();
+        showTaskDetailsModal = false;
         try {
+            const contract = await initializeContract();
             const tx = await contract.disputeTask(_taskId);
-            waitTransaction();
-        } catch {
-            console.log("An error has occured. Please try the transaction again.");
+            waitTransaction(tx);
+        } catch (error) {
+            transactionStatus = 2;
+            setTimeout(() => {
+                showLoadingModal = false;
+            }, 500);
         }
     }
 
@@ -442,11 +462,11 @@
                     >{taskDetails.reward}</span
                 >
             </p>
-            <!-- <p class="mb-2 font-medium text-lg">
+            <p class="mb-2 font-medium text-lg">
                 Status: <span class="font-normal text-base"
-                    >{taskDetails.status}</span
+                    >{taskDetails.statusVal} {taskDetails.status}</span
                 >
-            </p> -->
+            </p>
             <p class="mb-2 font-medium text-lg">
                 Date Created: <span class="font-normal text-base"
                     >{new Date(taskDetails.dateTimeCreated * 1000)
@@ -459,7 +479,7 @@
                     >{taskDetails.timeLimit}</span
                 >
             </p>
-            {#if taskDetails.statusVal != 0 && taskDetails.statusVal != 1}
+            {#if taskDetails.statusVal != 0 && Number(currentAccount) == Number(taskDetails.doer)}
                 <p class="mb-2 font-medium text-lg">
                     Video Link: 
                     {#if taskDetails.statusVal == 1 && Number(currentAccount) == Number(taskDetails.doer)}

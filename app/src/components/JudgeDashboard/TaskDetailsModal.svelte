@@ -4,11 +4,12 @@
      */
     export let showModal = false; // boolean
     export let showLoadingModal = false;
-    export let transactionDone = false;
+    export let transactionStatus = 1;
     export let moreClasses = ""; // boolean
     export let taskDetails: any;
     export let voteStatus: any;
-    export let getMyTasks = () => {}
+    export let getAllTasks = () => {}
+    export let getUserTokenAmount = () => {}
     export let initializeDappContract = async (): Promise<any> => {}
     export let initializeTokenContract = async (): Promise<any> => {}
 
@@ -20,40 +21,65 @@
     $: if (dialog && showModal) dialog.showModal();
     $: if (dialog && !showModal) dialog.close();
 
-    async function voteTaskSucceeded(_taskId: number) {
+    const waitTransaction = async (tx: any) => {
+        transactionStatus = 1;
         showLoadingModal = true;
-        showModal = false;
-        if (Number(voteStatus[0]) != Number(voteStatus[1])) {
-            const dappContract = await initializeDappContract() as any;
-            const tokenContract = await initializeTokenContract() as any;
-            const decimals = await tokenContract.decimals();
-            const voteTaskPrice = BigInt(1)*10n**decimals;
-            const response = await tokenContract.approve(dappContract.target, voteTaskPrice);
-            const tx = await dappContract.voteSucceedTask(_taskId);
-            transactionDone = true;
+        
+        tx.wait().then(async (receipt: any) => {
+        console.log("start", receipt, receipt.status);
+          if (receipt && receipt.status == 1) {
+            console.log("end", receipt, receipt.status);
+             // transaction success.
+            transactionStatus = 0;
             setTimeout(() => {
                 showLoadingModal = false;
-                showModal = false;
-                getMyTasks();
+                getUserTokenAmount();
+                getAllTasks();
+            }, 500);
+          }
+       });
+    };
+
+    async function voteTaskSucceeded(_taskId: number) {
+        transactionStatus = 1;
+        showLoadingModal = true;
+        showModal = false;
+        try {
+            if (Number(voteStatus[0]) != Number(voteStatus[1])) {
+                const dappContract = await initializeDappContract() as any;
+                const tokenContract = await initializeTokenContract() as any;
+                const decimals = await tokenContract.decimals();
+                const voteTaskPrice = BigInt(1)*10n**decimals;
+                const response = await tokenContract.approve(dappContract.target, voteTaskPrice);
+                const tx = await dappContract.voteSucceedTask(_taskId);
+                waitTransaction(tx);
+            }
+        } catch (error) {
+            transactionStatus = 2;
+            setTimeout(() => {
+                showLoadingModal = false;
             }, 500);
         }
     }
 
     async function voteTaskFailed(_taskId: number) {
+        transactionStatus = 1;
         showLoadingModal = true;
         showModal = false;
-        if (Number(voteStatus[0]) != Number(voteStatus[1])) {
-            const dappContract = await initializeDappContract() as any;
-            const tokenContract = await initializeTokenContract() as any;
-            const decimals = await tokenContract.decimals();
-            const voteTaskPrice = BigInt(1)*10n**decimals;
-            const response = await tokenContract.approve(dappContract.target, voteTaskPrice);
-            const tx = await dappContract.voteFailTask(_taskId);
-            transactionDone = true;
+        try {
+            if (Number(voteStatus[0]) != Number(voteStatus[1])) {
+                const dappContract = await initializeDappContract() as any;
+                const tokenContract = await initializeTokenContract() as any;
+                const decimals = await tokenContract.decimals();
+                const voteTaskPrice = BigInt(1)*10n**decimals;
+                const response = await tokenContract.approve(dappContract.target, voteTaskPrice);
+                const tx = await dappContract.voteFailTask(_taskId);
+                waitTransaction(tx);
+            }
+        } catch (error) {
+            transactionStatus = 2;
             setTimeout(() => {
                 showLoadingModal = false;
-                showModal = false;
-                getMyTasks();
             }, 500);
         }
     }
@@ -143,9 +169,9 @@
                         <p class="w-fit text-nowrap mb-2 font-medium text-lg mr-4">
                             Vote Progress:
                         </p>
-                        <div class=" text-lg font-medium text-center w-full h-7 bg-zinc-300 rounded-full dark:bg-gray-700">
+                        <div class=" text-lg font-medium text-center w-full h-7 bg-zinc-300 rounded-full dark:bg-gray-700 shadow-inner shadow-zinc-400">
                             <span class=" absolute">{Number(voteStatus[0]) > 0 ? "" : `${Number(voteStatus[0])} / ${Number(voteStatus[1])}`}</span>
-                            <div class=" h-7 text-white bg-indigo-700 rounded-full" style={`width: ${Number(voteStatus[0])/Number(voteStatus[1])*100}%`}>
+                            <div class=" h-7 text-white shadow-md shadow-indigo-500 bg-indigo-700 rounded-full" style={`width: ${Number(voteStatus[0])/Number(voteStatus[1])*100}%`}>
                                 {Number(voteStatus[0]) > 0 ? `${Number(voteStatus[0])} / ${Number(voteStatus[1])}` : ""}
                             </div>
                         </div>

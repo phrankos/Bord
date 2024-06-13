@@ -40,6 +40,16 @@
         return new Contract($token, tokenABI, signer);
     };
 
+    const getUserTokenAmount = async () => {
+        const BordToken = await initializeTokenContract();
+        const signer = await getSigner();
+        var userTokenAmount = await BordToken.balanceOf(signer.address);
+        userTokenAmountDisplay = Number(
+            BigInt(userTokenAmount) /
+                BigInt(10n ** (await BordToken.decimals()))
+        );
+    };
+
     async function getAllTasks() {
         const dappContract = await initializeDappContract();
         const tasksResponse = await dappContract.getAllTasks();
@@ -114,8 +124,7 @@
             })
         );
         filteredTasks = tasks;
-        setFilter("All");
-        console.log(tasks);
+        setFilter(filter);
     }
     
     let taskDetails = {
@@ -231,7 +240,8 @@
     {/if}
 
     {#if showTaskDetailsModal}
-        <TaskDetailsModal bind:showModal={showTaskDetailsModal} bind:taskDetails bind:voteStatus 
-        initializeDappContract={initializeDappContract} initializeTokenContract={initializeTokenContract}/>
+        <TaskDetailsModal bind:showModal={showTaskDetailsModal} bind:taskDetails bind:voteStatus  bind:transactionStatus bind:showLoadingModal
+        initializeDappContract={initializeDappContract} initializeTokenContract={initializeTokenContract}
+        getAllTasks={getAllTasks} getUserTokenAmount={getUserTokenAmount}/>
     {/if}
 </main>

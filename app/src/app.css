@@ -19,8 +19,12 @@ span {
   font-family: "Saira", sans-serif;
   /* font-size: 2em; */
   font-optical-sizing: auto;
-  font-weight: bolder;
+  font-weight: bold;
   font-style: normal;
   font-variation-settings:
     "wdth" 100;
+}
+
+.poppins {
+    font-family: 'Poppins', sans-serif;
 }

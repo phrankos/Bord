@@ -118,7 +118,7 @@
             })
         );
         filteredTasks = tasks;
-        setFilter("Open");
+        setFilter(filter);
     }
 
     let taskDetails = {
@@ -151,7 +151,6 @@
     function setFilter(_filter: string) {
         filter = _filter;
         filteredTasks = tasks.filter((task) => task.status === _filter);
-        console.log(filteredTasks);
     }
 
 </script>

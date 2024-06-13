@@ -5,10 +5,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract Bord is Ownable(msg.sender) {
-    // ERC20 public BordToken;
-
-    // 0.0001 ETH <-> 0.36 USD
-    // 0.0001 ETH <-> 1 BRD
 
     struct Task {
         uint256 taskId;
@@ -52,80 +48,6 @@ contract Bord is Ownable(msg.sender) {
     uint256 votePrice;
     // uint256 viewTaskPrice;
 
-
-    // Dummy Data Start
-    address[] dummyTaskAskers = [
-        address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266),
-        address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266),
-        address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266),
-        address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266),
-        address(0x91505F2a1C83F6f404628494c2b79603CDc106C9),
-        address(0x91505F2a1C83F6f404628494c2b79603CDc106C9),
-        address(0x91505F2a1C83F6f404628494c2b79603CDc106C9),
-        address(0x91505F2a1C83F6f404628494c2b79603CDc106C9),
-        address(0x6E4A412739ADA24031C92E75B0CEA26aFD2FbE0C),
-        address(0x6E4A412739ADA24031C92E75B0CEA26aFD2FbE0C),
-        address(0x6E4A412739ADA24031C92E75B0CEA26aFD2FbE0C),
-        address(0x6E4A412739ADA24031C92E75B0CEA26aFD2FbE0C)];
-    string[] dummyTaskTitles = [
-        "Write a Short Story",
-        "Design a Logo",
-        "Solve Math Problems",
-        "Translate Document",
-        "Create a Recipe",
-        "Code Review",
-        "Digital Art Creation",
-        "Edit Video",
-        "Graphic Design for Website",
-        "Write SEO Article",
-        "Transcribe Audio",
-        "Data Entry for Excel Sheet"
-    ];
-    string[] dummyTaskContents = [
-        "Compose a fictional short story with a minimum of 500 words.",
-        "Create a logo for a new tech startup company.",
-        "Solve a set of 10 math problems ranging from algebra to calculus.",
-        "Translate a 5-page document from English to Spanish.",
-        "Develop a unique recipe for a vegan dessert.",
-        "Review a Python codebase and provide feedback on optimization.",
-        "Create a digital artwork inspired by nature.",
-        "Edit a promotional video for a fitness brand.",
-        "Design graphics for a new website layout.",
-        "Write an SEO-optimized article on digital marketing trends.",
-        "Transcribe a 30-minute audio file into text format.",
-        "Enter data from scanned documents into an Excel sheet."
-    ];
-    uint256[] dummyTaskRewards = [5,10,3,15,8,12,20,25,18,7,4,12];
-    uint256[] dummyTaskDateTimesCreated = [
-        1678934642,
-        1678935945,
-        1678937218,
-        1678938502,
-        1678939756,
-        1678941034,
-        1678942379,
-        1678943658,
-        1678944965,
-        1678946278,
-        1678947563,
-        1678948821
-    ];
-    uint256[] dummyTaskTimeLimits = [
-        604800,
-        86400,
-        172800,
-        259200,
-        432000,
-        345600,
-        604800,
-        864000,
-        691200,
-        172800,
-        86400,
-        345600
-    ];
-
-
     constructor(address _BordTokenAddress) {
         bordToken =  BordToken(_BordTokenAddress);
 
@@ -137,26 +59,6 @@ contract Bord is Ownable(msg.sender) {
 
         taskCounter = 0;
         voteCounter = 0;
-
-        // Initialize dummy tasks
-        for (uint256 i = 0; i < 12; i++) {
-            Task memory newTask;
-
-            newTask.taskId = i;
-            newTask.asker = dummyTaskAskers[i];
-            newTask.doer = address(0);
-            newTask.title = dummyTaskTitles[i];
-            newTask.content = dummyTaskContents[i];
-            newTask.reward = dummyTaskRewards[i];
-            newTask.dateTimeCreated = dummyTaskDateTimesCreated[i];
-            newTask.timeLimit = dummyTaskTimeLimits[i];
-            newTask.status = 0;
-            // newTask.viewPrice = viewTaskPrice;
-            newTask.videoLink = "";
-
-            tasks.push(newTask);
-            taskCounter += 1;
-        }
     }
 
     function createTask(string memory _title, string memory _content, uint256 _reward, uint256 _timeLimit) public {
@@ -436,7 +338,7 @@ contract Bord is Ownable(msg.sender) {
         require(taskToVoteSucceed.taskId <= taskCounter);
 
         // Check if the asker or the doer is the message sender
-        require(taskToVoteSucceed.asker != msg.sender || taskToVoteSucceed.doer != msg.sender);
+        require(taskToVoteSucceed.asker != msg.sender && taskToVoteSucceed.doer != msg.sender);
 
         // Check if the task status is 6 (Disputing)
         require(taskToVoteSucceed.status == 6);
@@ -464,6 +366,7 @@ contract Bord is Ownable(msg.sender) {
             }
             else {  // Task Failed
                 taskToVoteSucceed.status = 0;   // Make task Open
+                taskToVoteSucceed.videoLink = "";
             }
         }
     }
@@ -475,7 +378,7 @@ contract Bord is Ownable(msg.sender) {
         require(taskToVoteFail.taskId <= taskCounter);
 
         // Check if the asker or the doer is the message sender
-        require(taskToVoteFail.asker != msg.sender || taskToVoteFail.doer != msg.sender);
+        require(taskToVoteFail.asker != msg.sender && taskToVoteFail.doer != msg.sender);
 
         // Check if the task status is 6 (Disputing)
         require(taskToVoteFail.status == 6);
@@ -500,6 +403,7 @@ contract Bord is Ownable(msg.sender) {
             // Check the results
             if (taskVote.failVotes > taskVote.successVotes) {   // Task Failed
                 taskToVoteFail.status = 0;   // Make task Open
+                taskToVoteFail.videoLink = "";
             }
             else {  // Task Succeeded
                 taskToVoteFail.status = 4;   // Make task Claimable
@@ -608,7 +512,7 @@ contract BordToken is ERC20("Bord Token", "BRD"), Ownable(msg.sender) {
         return balanceOf(msg.sender);
     }
 
-    function mint(address to, uint256 amount) public {
+    function mint(address to, uint256 amount) private {
         _mint(to, amount);
     }
 
