@@ -60,6 +60,7 @@
     let newTaskTimeLimitMinutes = 0;
     let newTaskTimeLimitSeconds = 0;
     async function createTask() {
+        transactionStatus = 1;
         showLoadingModal = true;
         showModal = false;
         newTaskTimeLimit = newTaskTimeLimitDays * 60 * 60 * 24 + newTaskTimeLimitHours * 60 * 60 + newTaskTimeLimitMinutes * 60 + newTaskTimeLimitSeconds * 1;
@@ -68,9 +69,6 @@
         const tokenContract = await initializeTokenContract();
         const decimals = await tokenContract.decimals();
         const newTaskRewardConverted = BigInt(newTaskReward)*10n**decimals;
-
-        transactionStatus = 1;
-        showLoadingModal = true;
 
         try {
             const response = await tokenContract.approve(dappContract.target, newTaskRewardConverted);
