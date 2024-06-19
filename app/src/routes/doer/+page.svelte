@@ -462,16 +462,23 @@
                     >{taskDetails.reward}</span
                 >
             </p>
-            <p class="mb-2 font-medium text-lg">
+            <!-- <p class="mb-2 font-medium text-lg">
                 Status: <span class="font-normal text-base"
                     >{taskDetails.statusVal} {taskDetails.status}</span
                 >
-            </p>
+            </p> -->
             <p class="mb-2 font-medium text-lg">
                 Date Created: <span class="font-normal text-base"
                     >{new Date(taskDetails.dateTimeCreated * 1000)
                         .toLocaleString()
-                        .split(",")[0]}</span
+                        }</span
+                >
+            </p>
+            <p class="mb-2 font-medium text-lg">
+                Date Accepted: <span class="font-normal text-base"
+                    >{new Date(taskDetails.dateTimeCreated * 1000)
+                        .toLocaleString()
+                        }</span
                 >
             </p>
             <p class="mb-2 font-medium text-lg">

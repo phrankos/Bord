@@ -62,6 +62,7 @@
                 content: any;
                 reward: any;
                 dateTimeCreated: any;
+                dateTimeAccepted: any;
                 timeLimit: any;
                 status: any;
                 statusVal: any;
@@ -75,6 +76,7 @@
                 content: task.content,
                 reward: Number(task.reward),
                 dateTimeCreated: Number(task.dateTimeCreated),
+                dateTimeAccepted: Number(task.dateTimeAccepted),
                 timeLimit: (function () {
                     var seconds = Number(task.timeLimit);
                     const days = Math.floor(seconds / (3600 * 24));
